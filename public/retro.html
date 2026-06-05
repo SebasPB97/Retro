@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RetroBoard</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="retro-page">
+
+  <!-- TOP BAR -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <a href="/" class="logo-small">🔄</a>
+      <span class="session-title" id="session-title">Cargando...</span>
+      <span class="phase-badge" id="phase-badge">—</span>
+    </div>
+    <div class="topbar-center" id="timer-display" style="display:none">
+      <div class="timer-countdown" id="timer-countdown">00:00</div>
+    </div>
+    <div class="topbar-right">
+      <div class="users-pill" id="users-pill" title="Usuarios online">👥 <span id="user-count">0</span></div>
+      <button class="btn-ghost" id="copy-link-btn" title="Copiar link">🔗 Copiar link</button>
+      <div class="export-dropdown">
+        <button class="btn-ghost" id="export-btn">⬇ Exportar</button>
+        <div class="export-menu" id="export-menu">
+          <a href="#" id="export-json">JSON</a>
+          <a href="#" id="export-md">Markdown</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- HOST CONTROLS BAR -->
+  <div class="host-controls" id="host-controls" style="display:none">
+    <div class="phase-controls">
+      <label>Fase:</label>
+      <div class="phase-buttons" id="phase-buttons">
+        <button class="phase-btn" data-phase="adding">Añadiendo</button>
+        <button class="phase-btn" data-phase="voting">Votando</button>
+        <button class="phase-btn" data-phase="discussing">Discutiendo</button>
+        <button class="phase-btn" data-phase="done">Terminada</button>
+      </div>
+    </div>
+    <div class="timer-controls">
+      <label>Timer:</label>
+      <select id="timer-duration">
+        <option value="300">5 min</option>
+        <option value="600" selected>10 min</option>
+        <option value="900">15 min</option>
+        <option value="1800">30 min</option>
+      </select>
+      <button class="btn-ghost" id="start-timer-btn">▶ Iniciar</button>
+      <button class="btn-ghost" id="stop-timer-btn" style="display:none">⏹ Parar</button>
+    </div>
+  </div>
+
+  <!-- CONNECTION STATUS -->
+  <div id="connection-status" class="connection-banner" style="display:none">
+    <span id="connection-msg">Conectando...</span>
+  </div>
+
+  <!-- BOARD -->
+  <div class="board-container" id="board-container">
+    <div class="columns-wrapper" id="columns-wrapper">
+      <!-- Columns rendered by JS -->
+    </div>
+    <div class="add-column-zone" id="add-column-zone" style="display:none">
+      <div class="add-column-form" id="add-column-form" style="display:none">
+        <input type="text" id="new-col-name" placeholder="Nombre de columna" maxlength="40" />
+        <input type="color" id="new-col-color" value="#9c27b0" />
+        <button id="confirm-add-col" class="btn-primary">Añadir</button>
+        <button id="cancel-add-col" class="btn-ghost">Cancelar</button>
+      </div>
+      <button class="btn-add-column" id="show-add-col-btn">+ Añadir columna</button>
+    </div>
+  </div>
+
+  <!-- FOCUS OVERLAY -->
+  <div class="focus-overlay" id="focus-overlay" style="display:none">
+    <div class="focus-modal" id="focus-modal">
+      <button class="focus-close-btn" id="focus-close-btn">✕</button>
+      <div class="focus-card-text" id="focus-card-text"></div>
+      <div class="focus-meta">
+        <span class="focus-author" id="focus-author"></span>
+        <button class="vote-btn" id="focus-vote-btn"></button>
+      </div>
+
+      <div class="focus-reactions">
+        <div class="emoji-picker" id="emoji-picker">
+          <span class="emoji-option" data-emoji="👍">👍</span>
+          <span class="emoji-option" data-emoji="❤️">❤️</span>
+          <span class="emoji-option" data-emoji="😂">😂</span>
+          <span class="emoji-option" data-emoji="😮">😮</span>
+          <span class="emoji-option" data-emoji="😢">😢</span>
+          <span class="emoji-option" data-emoji="🎉">🎉</span>
+          <span class="emoji-option" data-emoji="🤔">🤔</span>
+          <span class="emoji-option" data-emoji="💡">💡</span>
+        </div>
+        <div class="reactions-display" id="reactions-display"></div>
+      </div>
+
+      <div class="focus-section">
+        <h3>Comentarios</h3>
+        <div class="comments-list" id="comments-list"></div>
+        <div class="comment-input-row">
+          <input type="text" id="comment-input" placeholder="Añadir comentario..." maxlength="500" />
+          <button id="submit-comment-btn" class="btn-primary">Enviar</button>
+        </div>
+      </div>
+
+      <div class="focus-section">
+        <h3>Acciones</h3>
+        <div class="actions-list" id="actions-list"></div>
+        <div class="action-input-form" id="action-input-form">
+          <input type="text" id="action-text-input" placeholder="Descripción de la acción" maxlength="300" />
+          <input type="text" id="action-assignee-input" placeholder="Responsable (opcional)" maxlength="80" />
+          <input type="date" id="action-due-input" />
+          <button id="submit-action-btn" class="btn-primary">Agregar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

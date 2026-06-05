@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RetroBoard 🔄</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="lobby-page">
+  <header class="lobby-header">
+    <div class="logo">🔄 RetroBoard</div>
+    <p class="tagline">Retrospectivas ágiles en tiempo real</p>
+  </header>
+
+  <main class="lobby-main">
+    <div class="lobby-grid">
+      <!-- Create Session -->
+      <section class="card-panel" id="create-panel">
+        <h2>Nueva sesión</h2>
+        <form id="create-form">
+          <div class="form-group">
+            <label for="session-name">Nombre de la sesión</label>
+            <input type="text" id="session-name" placeholder="Sprint 42 Retrospectiva" maxlength="80" />
+          </div>
+
+          <div class="form-group">
+            <label>Columnas personalizadas <span class="optional">(opcional)</span></label>
+            <div id="custom-columns-list"></div>
+            <button type="button" class="btn-ghost" id="add-column-btn">+ Añadir columna</button>
+          </div>
+
+          <div class="form-group">
+            <label for="host-username">Tu nombre</label>
+            <input type="text" id="host-username" placeholder="Tu nombre" maxlength="40" required />
+          </div>
+
+          <button type="submit" class="btn-primary" id="create-btn">Crear sesión</button>
+        </form>
+      </section>
+
+      <!-- Join Session -->
+      <section class="card-panel" id="join-panel">
+        <h2>Unirse a sesión</h2>
+        <form id="join-form">
+          <div class="form-group">
+            <label for="join-code">Código de sesión</label>
+            <input type="text" id="join-code" placeholder="Pega el código o link aquí" />
+          </div>
+          <div class="form-group">
+            <label for="join-username">Tu nombre</label>
+            <input type="text" id="join-username" placeholder="Tu nombre" maxlength="40" required />
+          </div>
+          <button type="submit" class="btn-accent">Unirse →</button>
+        </form>
+      </section>
+    </div>
+
+    <!-- Active Sessions -->
+    <section class="sessions-list-section">
+      <h2>Sesiones activas</h2>
+      <div id="sessions-list" class="sessions-grid">
+        <div class="loading-text">Cargando sesiones...</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Generate or retrieve persistent user ID
+    function getUserID() {
+      let uid = sessionStorage.getItem('retro_user_id');
+      if (!uid) {
+        uid = crypto.randomUUID();
+        sessionStorage.setItem('retro_user_id', uid);
+      }
+      return uid;
+    }
+
+    // Custom columns management
+    let customColumns = [];
+
+    document.getElementById('add-column-btn').addEventListener('click', () => {
+      const wrapper = document.getElementById('custom-columns-list');
+      const idx = customColumns.length;
+      customColumns.push({ name: '', color: '#9c27b0' });
+
+      const COLORS = ['#4caf50','#f44336','#2196f3','#ff9800','#9c27b0','#00bcd4','#e91e63'];
+      const colEl = document.createElement('div');
+      colEl.className = 'custom-col-row';
+      colEl.innerHTML = `
+        <input type="text" class="col-name-input" placeholder="Nombre columna" maxlength="40" data-idx="${idx}" />
+        <input type="color" class="col-color-input" value="${COLORS[idx % COLORS.length]}" data-idx="${idx}" />
+        <button type="button" class="btn-icon remove-col" data-idx="${idx}">✕</button>
+      `;
+      wrapper.appendChild(colEl);
+
+      colEl.querySelector('.col-name-input').addEventListener('input', e => {
+        customColumns[e.target.dataset.idx].name = e.target.value;
+      });
+      colEl.querySelector('.col-color-input').addEventListener('input', e => {
+        customColumns[e.target.dataset.idx].color = e.target.value;
+      });
+      colEl.querySelector('.remove-col').addEventListener('click', e => {
+        const i = parseInt(e.target.dataset.idx);
+        customColumns.splice(i, 1);
+        colEl.remove();
+        // Re-index
+        document.querySelectorAll('.custom-col-row').forEach((row, newIdx) => {
+          row.querySelectorAll('[data-idx]').forEach(el => el.dataset.idx = newIdx);
+        });
+      });
+    });
+
+    // Create session
+    document.getElementById('create-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = document.getElementById('session-name').value.trim();
+      const username = document.getElementById('host-username').value.trim();
+      if (!username) { alert('Ingresa tu nombre'); return; }
+
+      const cols = customColumns.filter(c => c.name.trim() !== '');
+      const btn = document.getElementById('create-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creando...';
+
+      try {
+        const res = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name || undefined, columns: cols.length ? cols : undefined })
+        });
+        const data = await res.json();
+        sessionStorage.setItem('retro_user_id', data.host_user_id);
+        sessionStorage.setItem('retro_username', username);
+        window.location.href = `/retro/${data.session_id}`;
+      } catch (err) {
+        alert('Error al crear sesión: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Crear sesión';
+      }
+    });
+
+    // Join session
+    document.getElementById('join-form').addEventListener('submit', e => {
+      e.preventDefault();
+      let code = document.getElementById('join-code').value.trim();
+      const username = document.getElementById('join-username').value.trim();
+      if (!username) { alert('Ingresa tu nombre'); return; }
+      if (!code) { alert('Ingresa el código de sesión'); return; }
+
+      // Support full URL or just ID
+      const match = code.match(/\/retro\/([^/?#]+)/);
+      if (match) code = match[1];
+
+      sessionStorage.setItem('retro_username', username);
+      window.location.href = `/retro/${code}`;
+    });
+
+    // Load sessions list
+    async function loadSessions() {
+      try {
+        const res = await fetch('/api/sessions');
+        const sessions = await res.json();
+        const container = document.getElementById('sessions-list');
+        if (!sessions || sessions.length === 0) {
+          container.innerHTML = '<p class="empty-text">No hay sesiones activas aún. ¡Crea una!</p>';
+          return;
+        }
+        const phaseColors = { adding: '#4caf50', voting: '#2196f3', discussing: '#ff9800', done: '#9e9e9e' };
+        const phaseLabels = { adding: 'Añadiendo', voting: 'Votando', discussing: 'Discutiendo', done: 'Terminada' };
+        sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        container.innerHTML = sessions.map(s => `
+          <a href="/retro/${s.id}" class="session-card">
+            <div class="session-card-header">
+              <span class="session-name">${escHtml(s.name)}</span>
+              <span class="phase-badge" style="background:${phaseColors[s.phase] || '#666'}">${phaseLabels[s.phase] || s.phase}</span>
+            </div>
+            <div class="session-card-meta">
+              <span>🃏 ${s.card_count} tarjetas</span>
+              <span>📅 ${new Date(s.created_at).toLocaleDateString('es')}</span>
+            </div>
+          </a>
+        `).join('');
+      } catch (err) {
+        document.getElementById('sessions-list').innerHTML = '<p class="empty-text">Error cargando sesiones.</p>';
+      }
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadSessions();
+    setInterval(loadSessions, 15000);
+  </script>
+</body>
+</html>

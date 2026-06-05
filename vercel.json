@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/retro/:path*", "destination": "/retro.html" }
+  ]
+}

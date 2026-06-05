@@ -1,0 +1,91 @@
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+	"retro-tool-vercel/internal/cors"
+	"retro-tool-vercel/internal/models"
+	"retro-tool-vercel/internal/supa"
+)
+
+func Handler(w http.ResponseWriter, r *http.Request) {
+	if cors.Preflight(w, r) {
+		return
+	}
+	cors.Set(w)
+
+	switch r.Method {
+	case http.MethodPost:
+		createAction(w, r)
+	case http.MethodPut:
+		updateAction(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func createAction(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		CardID    string `json:"card_id"`
+		SessionID string `json:"session_id"`
+		Text      string `json:"text"`
+		Assignee  string `json:"assignee"`
+		DueDate   string `json:"due_date"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if body.CardID == "" || body.SessionID == "" || body.Text == "" {
+		http.Error(w, "missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	db := supa.New()
+	actionData := map[string]interface{}{
+		"card_id":    body.CardID,
+		"session_id": body.SessionID,
+		"text":       body.Text,
+		"assignee":   body.Assignee,
+		"due_date":   body.DueDate,
+		"done":       false,
+	}
+
+	var created []models.DBActionItem
+	if err := db.Insert("action_items", actionData, &created); err != nil {
+		http.Error(w, "failed to create action item: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if len(created) > 0 {
+		json.NewEncoder(w).Encode(created[0])
+	}
+}
+
+func updateAction(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ID   string `json:"id"`
+		Done bool   `json:"done"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if body.ID == "" {
+		http.Error(w, "missing action id", http.StatusBadRequest)
+		return
+	}
+
+	db := supa.New()
+	update := map[string]interface{}{
+		"done": body.Done,
+	}
+	if err := db.Update("action_items", "id=eq."+body.ID, update); err != nil {
+		http.Error(w, "failed to update action item: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
