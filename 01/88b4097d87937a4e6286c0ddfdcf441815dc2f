@@ -1,0 +1,45 @@
+api/timer/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-7
+pkg/models/models.go
+  s_ac5156755a083e::t_2d76ed369c73c0 1-134
+api/cards/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-8
+api/columns/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-8
+api/sessions/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 8-10
+pkg/supa/client.go
+  s_ac5156755a083e::t_2d76ed369c73c0 1-107
+api/session/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-8
+pkg/cors/cors.go
+  s_ac5156755a083e::t_2d76ed369c73c0 1-18
+api/actions/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-8
+api/comments/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-8
+api/export/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 7-9
+api/reactions/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-8
+api/config/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 7
+api/votes/index.go
+  s_ac5156755a083e::t_92bd9cdb725df9 6-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "0188b4097d87937a4e6286c0ddfdcf441815dc2f",
+  "prompts": {},
+  "sessions": {
+    "s_ac5156755a083e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e3ce09f4-e72f-4e9f-a18f-c275e7cccd53",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "jupulido_meli <juan.pulido@mercadolibre.com.co>"
+    }
+  }
+}
