@@ -3,9 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"retro-tool-vercel/internal/cors"
-	"retro-tool-vercel/internal/models"
-	"retro-tool-vercel/internal/supa"
+	"retro-tool-vercel/pkg/cors"
+	"retro-tool-vercel/pkg/models"
+	"retro-tool-vercel/pkg/supa"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {

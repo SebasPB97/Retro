@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
-	"retro-tool-vercel/internal/cors"
+	"retro-tool-vercel/pkg/cors"
 )
 
 func Handler(w http.ResponseWriter, r *http.Request) {
