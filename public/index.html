@@ -24,7 +24,7 @@
           </div>
 
           <div class="form-group">
-            <label>Columnas personalizadas <span class="optional">(opcional)</span></label>
+            <label>Columnas</label>
             <div id="custom-columns-list"></div>
             <button type="button" class="btn-ghost" id="add-column-btn">+ Añadir columna</button>
           </div>
@@ -76,19 +76,25 @@
     }
 
     // Custom columns management
+    const COLORS = ['#4caf50','#f44336','#ff9800','#e91e63','#9c27b0','#2196f3','#00bcd4'];
+    const DEFAULT_COLUMNS = [
+      { name: 'Me gustó', color: '#4caf50' },
+      { name: 'Me bloqueó', color: '#f44336' },
+      { name: 'Qué puede mejorar', color: '#ff9800' },
+      { name: 'Qué odié', color: '#e91e63' },
+    ];
     let customColumns = [];
 
-    document.getElementById('add-column-btn').addEventListener('click', () => {
+    function addColumnRow(name, color) {
       const wrapper = document.getElementById('custom-columns-list');
       const idx = customColumns.length;
-      customColumns.push({ name: '', color: '#9c27b0' });
+      customColumns.push({ name: name || '', color: color || COLORS[idx % COLORS.length] });
 
-      const COLORS = ['#4caf50','#f44336','#2196f3','#ff9800','#9c27b0','#00bcd4','#e91e63'];
       const colEl = document.createElement('div');
       colEl.className = 'custom-col-row';
       colEl.innerHTML = `
-        <input type="text" class="col-name-input" placeholder="Nombre columna" maxlength="40" data-idx="${idx}" />
-        <input type="color" class="col-color-input" value="${COLORS[idx % COLORS.length]}" data-idx="${idx}" />
+        <input type="text" class="col-name-input" placeholder="Nombre columna" maxlength="40" data-idx="${idx}" value="${escHtml(name || '')}" />
+        <input type="color" class="col-color-input" value="${color || COLORS[idx % COLORS.length]}" data-idx="${idx}" />
         <button type="button" class="btn-icon remove-col" data-idx="${idx}">✕</button>
       `;
       wrapper.appendChild(colEl);
@@ -103,12 +109,16 @@
         const i = parseInt(e.target.dataset.idx);
         customColumns.splice(i, 1);
         colEl.remove();
-        // Re-index
         document.querySelectorAll('.custom-col-row').forEach((row, newIdx) => {
           row.querySelectorAll('[data-idx]').forEach(el => el.dataset.idx = newIdx);
         });
       });
-    });
+    }
+
+    // Pre-populate with default columns
+    DEFAULT_COLUMNS.forEach(col => addColumnRow(col.name, col.color));
+
+    document.getElementById('add-column-btn').addEventListener('click', () => addColumnRow());
 
     // Create session
     document.getElementById('create-form').addEventListener('submit', async e => {

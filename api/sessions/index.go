@@ -124,10 +124,10 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 
 	if len(cols) == 0 {
 		cols = []colInput{
-			{Name: "😊 Lo que salió bien", Color: "#4caf50"},
-			{Name: "😕 Lo que mejorar", Color: "#f44336"},
-			{Name: "💡 Ideas", Color: "#2196f3"},
-			{Name: "✅ Accionables", Color: "#ff9800"},
+			{Name: "Me gustó", Color: "#4caf50"},
+			{Name: "Me bloqueó", Color: "#f44336"},
+			{Name: "Qué puede mejorar", Color: "#ff9800"},
+			{Name: "Qué odié", Color: "#e91e63"},
 		}
 	}
 

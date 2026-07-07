@@ -256,6 +256,7 @@ function subscribeRealtime(sessionID, userID, username) {
           state.focused.actions = card.actions;
           renderActions();
         }
+        renderActionsPanel();
       }
     }
   });
@@ -271,6 +272,7 @@ function subscribeRealtime(sessionID, userID, username) {
         state.focused.actions = card.actions;
         renderActions();
       }
+      renderActionsPanel();
     }
   });
 
@@ -398,6 +400,7 @@ function renderFullBoard() {
   renderUsers();
   renderHostControls();
   renderAllColumns();
+  renderActionsPanel();
   // If there is a focused card, reopen overlay
   if (state.session.focused_card_id) {
     const fc = findCard(state.session.focused_card_id);
@@ -407,6 +410,44 @@ function renderFullBoard() {
   if (state.session.timer && state.session.timer.running) {
     startTimerDisplay(state.session.timer);
   }
+}
+
+function renderActionsPanel() {
+  if (!state.session) return;
+  const body = document.getElementById('actions-side-body');
+  const countEl = document.getElementById('actions-side-count');
+  if (!body) return;
+
+  const allActions = [];
+  (state.session.cards || []).forEach(card => {
+    (card.actions || []).forEach(action => {
+      allActions.push({ ...action, cardText: card.text });
+    });
+  });
+
+  const pendingCount = allActions.filter(a => !a.done).length;
+  if (countEl) {
+    countEl.textContent = pendingCount;
+    countEl.style.display = pendingCount > 0 ? 'inline' : 'none';
+  }
+
+  if (allActions.length === 0) {
+    body.innerHTML = '<p class="actions-side-empty">Sin accionables aún.<br>Abre una tarjeta para agregar.</p>';
+    return;
+  }
+
+  allActions.sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
+
+  body.innerHTML = allActions.map(a => `
+    <div class="actions-side-item ${a.done ? 'done' : ''}">
+      <div class="actions-side-card-ref">📌 ${escHtml(a.cardText)}</div>
+      <div class="action-details">
+        <span class="action-text">${escHtml(a.text)}</span>
+        ${a.assignee ? `<span class="action-assignee">→ ${escHtml(a.assignee)}</span>` : ''}
+        ${a.due_date ? `<span class="action-due">📅 ${escHtml(a.due_date)}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
 }
 
 function renderPhase() {
@@ -1072,6 +1113,14 @@ function setupEventListeners() {
       }
     }
   });
+
+  // Actions side panel toggle
+  document.getElementById('actions-side-toggle').addEventListener('click', () => {
+    const panel = document.getElementById('actions-side-panel');
+    const btn = document.getElementById('actions-side-toggle');
+    panel.classList.toggle('collapsed');
+    btn.textContent = panel.classList.contains('collapsed') ? '‹' : '›';
+  });
 }
 
 function submitComment() {
@@ -1090,6 +1139,7 @@ function submitAction() {
   const dueDate = document.getElementById('action-due-input').value;
   if (!text) return;
   addAction(state.focused.id, text, assignee, dueDate)
+    .then(() => renderActionsPanel())
     .catch(err => alert('Error al agregar acción: ' + err.message));
   document.getElementById('action-text-input').value = '';
   document.getElementById('action-assignee-input').value = '';

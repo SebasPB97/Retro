@@ -11,7 +11,7 @@
   <!-- TOP BAR -->
   <header class="topbar" id="topbar">
     <div class="topbar-left">
-      <a href="/" class="logo-small">🔄</a>
+      <a href="/" class="btn-home" title="Volver al inicio">← Inicio</a>
       <span class="session-title" id="session-title">Cargando...</span>
       <span class="phase-badge" id="phase-badge">—</span>
     </div>
@@ -62,18 +62,31 @@
 
   <!-- BOARD -->
   <div class="board-container" id="board-container">
-    <div class="columns-wrapper" id="columns-wrapper">
-      <!-- Columns rendered by JS -->
-    </div>
-    <div class="add-column-zone" id="add-column-zone" style="display:none">
-      <div class="add-column-form" id="add-column-form" style="display:none">
-        <input type="text" id="new-col-name" placeholder="Nombre de columna" maxlength="40" />
-        <input type="color" id="new-col-color" value="#9c27b0" />
-        <button id="confirm-add-col" class="btn-primary">Añadir</button>
-        <button id="cancel-add-col" class="btn-ghost">Cancelar</button>
+    <div class="board-main" id="board-main">
+      <div class="columns-wrapper" id="columns-wrapper">
+        <!-- Columns rendered by JS -->
       </div>
-      <button class="btn-add-column" id="show-add-col-btn">+ Añadir columna</button>
+      <div class="add-column-zone" id="add-column-zone" style="display:none">
+        <div class="add-column-form" id="add-column-form" style="display:none">
+          <input type="text" id="new-col-name" placeholder="Nombre de columna" maxlength="40" />
+          <input type="color" id="new-col-color" value="#9c27b0" />
+          <button id="confirm-add-col" class="btn-primary">Añadir</button>
+          <button id="cancel-add-col" class="btn-ghost">Cancelar</button>
+        </div>
+        <button class="btn-add-column" id="show-add-col-btn">+ Añadir columna</button>
+      </div>
     </div>
+
+    <!-- ACTIONS SIDE PANEL -->
+    <aside class="actions-side-panel" id="actions-side-panel">
+      <div class="actions-side-header">
+        <span class="actions-side-title">⚡ Accionables <span class="actions-side-count" id="actions-side-count" style="display:none"></span></span>
+        <button class="btn-icon actions-side-toggle" id="actions-side-toggle" title="Colapsar panel">›</button>
+      </div>
+      <div class="actions-side-body" id="actions-side-body">
+        <!-- Rendered by JS -->
+      </div>
+    </aside>
   </div>
 
   <!-- FOCUS OVERLAY -->
