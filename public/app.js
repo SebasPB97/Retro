@@ -727,7 +727,7 @@ function buildCardElement(card) {
   if (voteBtn) {
     voteBtn.addEventListener('click', e => {
       e.stopPropagation();
-      voteCard(card.id).catch(err => console.error('vote error', err));
+      handleVote(card);
     });
   }
 
@@ -990,6 +990,21 @@ function voteCard(cardId) {
   });
 }
 
+function handleVote(card) {
+  const uid = state.currentUser ? state.currentUser.id : '';
+  voteCard(card.id).then(result => {
+    if (!result) return;
+    if (result.action === 'removed') {
+      card.votes = (card.votes || []).filter(v => v !== uid);
+    } else {
+      if (!card.votes) card.votes = [];
+      if (!card.votes.includes(uid)) card.votes.push(uid);
+    }
+    renderColumn(card.column_id);
+    if (state.focused && state.focused.id === card.id) renderFocusVote();
+  }).catch(err => console.error('vote error', err));
+}
+
 function focusCard(cardId) {
   return api('sessions', 'PUT', { id: state.session.id, focused_card_id: cardId });
 }
@@ -1165,9 +1180,7 @@ function setupEventListeners() {
 
   // Focus overlay: vote
   document.getElementById('focus-vote-btn').addEventListener('click', () => {
-    if (state.focused) {
-      voteCard(state.focused.id).catch(err => console.error('vote error', err));
-    }
+    if (state.focused) handleVote(state.focused);
   });
 
   // Focus overlay: emoji picker
