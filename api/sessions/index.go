@@ -24,6 +24,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		createSession(w, r)
 	case http.MethodPut:
 		updateSession(w, r)
+	case http.MethodDelete:
+		deleteSession(w, r)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -149,6 +151,30 @@ func createSession(w http.ResponseWriter, r *http.Request) {
 		"session_id":   sessionID,
 		"host_user_id": hostID,
 	})
+}
+
+// DELETE /api/sessions — permanently delete a session and all its data
+func deleteSession(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "missing session id", http.StatusBadRequest)
+		return
+	}
+
+	db := supa.New()
+	// Delete in dependency order to avoid FK violations
+	for _, table := range []string{"action_items", "reactions", "comments", "card_votes", "cards", "columns"} {
+		if err := db.Delete(table, "session_id=eq."+id); err != nil {
+			http.Error(w, "failed to delete "+table+": "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	if err := db.Delete("sessions", "id=eq."+id); err != nil {
+		http.Error(w, "failed to delete session: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // PUT /api/sessions — update session fields (phase, focused_card_id)

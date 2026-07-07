@@ -179,17 +179,35 @@
         const phaseLabels = { adding: 'Añadiendo', voting: 'Votando', discussing: 'Discutiendo', done: 'Terminada' };
         sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         container.innerHTML = sessions.map(s => `
-          <a href="/retro/${s.id}" class="session-card">
-            <div class="session-card-header">
-              <span class="session-name">${escHtml(s.name)}</span>
-              <span class="phase-badge" style="background:${phaseColors[s.phase] || '#666'}">${phaseLabels[s.phase] || s.phase}</span>
-            </div>
-            <div class="session-card-meta">
-              <span>🃏 ${s.card_count} tarjetas</span>
-              <span>📅 ${new Date(s.created_at).toLocaleDateString('es')}</span>
-            </div>
-          </a>
+          <div class="session-card-wrapper">
+            <a href="/retro/${s.id}" class="session-card">
+              <div class="session-card-header">
+                <span class="session-name">${escHtml(s.name)}</span>
+                <span class="phase-badge" style="background:${phaseColors[s.phase] || '#666'}">${phaseLabels[s.phase] || s.phase}</span>
+              </div>
+              <div class="session-card-meta">
+                <span>🃏 ${s.card_count} tarjetas</span>
+                <span>📅 ${new Date(s.created_at).toLocaleDateString('es')}</span>
+              </div>
+            </a>
+            <button class="btn-delete-session" data-id="${escHtml(s.id)}" data-name="${escHtml(s.name)}" title="Eliminar sesión">🗑</button>
+          </div>
         `).join('');
+
+        container.querySelectorAll('.btn-delete-session').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm(`¿Eliminar la sesión "${btn.dataset.name}" y todos sus datos?`)) return;
+            btn.disabled = true;
+            try {
+              const res = await fetch(`/api/sessions?id=${btn.dataset.id}`, { method: 'DELETE' });
+              if (!res.ok) throw new Error(await res.text());
+              loadSessions();
+            } catch (err) {
+              alert('Error al eliminar: ' + err.message);
+              btn.disabled = false;
+            }
+          });
+        });
       } catch (err) {
         document.getElementById('sessions-list').innerHTML = '<p class="empty-text">Error cargando sesiones.</p>';
       }

@@ -103,6 +103,12 @@ input, textarea, select, button {
 }
 .btn-icon:hover { opacity: 1; background: var(--surface3); }
 
+.btn-danger-ghost {
+  color: var(--error) !important;
+  border-color: rgba(244,67,54,0.3) !important;
+}
+.btn-danger-ghost:hover { background: rgba(244,67,54,0.12) !important; border-color: var(--error) !important; }
+
 /* ─── Forms ──────────────────────────────────────────────────────────────────── */
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
@@ -429,8 +435,9 @@ select { appearance: none; cursor: pointer; }
   transition: width 0.2s ease, min-width 0.2s ease;
 }
 .actions-side-panel.collapsed {
-  width: 36px;
-  min-width: 36px;
+  width: 0;
+  min-width: 0;
+  border-left: none;
 }
 .actions-side-header {
   display: flex;
@@ -441,7 +448,6 @@ select { appearance: none; cursor: pointer; }
   flex-shrink: 0;
   gap: 8px;
 }
-.actions-side-panel.collapsed .actions-side-header { justify-content: center; padding: 12px 4px; }
 .actions-side-title {
   font-size: 0.8rem;
   font-weight: 700;
@@ -451,7 +457,6 @@ select { appearance: none; cursor: pointer; }
   white-space: nowrap;
   overflow: hidden;
 }
-.actions-side-panel.collapsed .actions-side-title { display: none; }
 .actions-side-count {
   background: var(--accent);
   color: #fff;
@@ -470,7 +475,6 @@ select { appearance: none; cursor: pointer; }
   flex-direction: column;
   gap: 8px;
 }
-.actions-side-panel.collapsed .actions-side-body { display: none; }
 .actions-side-item {
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -478,7 +482,7 @@ select { appearance: none; cursor: pointer; }
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   font-size: 0.82rem;
   transition: opacity var(--transition);
 }
@@ -493,7 +497,33 @@ select { appearance: none; cursor: pointer; }
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 2px;
+  cursor: pointer;
 }
+.actions-side-card-ref:hover { color: var(--accent-hover); text-decoration: underline; }
+.action-view {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+.action-side-btns {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.actions-side-item:hover .action-side-btns { opacity: 1; }
+.action-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.action-edit-form input {
+  font-size: 0.78rem;
+  padding: 5px 8px;
+}
+.action-edit-btns { display: flex; gap: 5px; }
 .actions-side-empty {
   color: var(--text-muted);
   font-size: 0.82rem;
@@ -502,6 +532,30 @@ select { appearance: none; cursor: pointer; }
   padding: 24px 8px;
   line-height: 1.7;
 }
+
+/* Session card wrapper with delete button */
+.session-card-wrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.session-card-wrapper .session-card { flex: 1; }
+.btn-delete-session {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  opacity: 0;
+  transition: opacity var(--transition);
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  z-index: 1;
+}
+.session-card-wrapper:hover .btn-delete-session { opacity: 0.5; }
+.btn-delete-session:hover { opacity: 1 !important; background: rgba(244,67,54,0.15); }
 
 .columns-wrapper {
   display: flex;

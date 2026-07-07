@@ -170,14 +170,14 @@ function subscribeRealtime(sessionID, userID, username) {
     event: 'DELETE', schema: 'public', table: 'cards', filter: `session_id=eq.${sessionID}`
   }, handleCardDelete);
 
-  // Votes
+  // Votes — re-render entire column so cards re-sort by vote count
   channel.on('postgres_changes', {
     event: 'INSERT', schema: 'public', table: 'card_votes', filter: `session_id=eq.${sessionID}`
   }, ({ new: row }) => {
     const card = findCard(row.card_id);
     if (card && !card.votes.includes(row.user_id)) {
       card.votes.push(row.user_id);
-      renderCardElement(row.card_id);
+      renderColumn(card.column_id);
       if (state.focused && state.focused.id === row.card_id) renderFocusVote();
     }
   });
@@ -187,7 +187,7 @@ function subscribeRealtime(sessionID, userID, username) {
     const card = findCard(row.card_id);
     if (card) {
       card.votes = card.votes.filter(v => v !== row.user_id);
-      renderCardElement(row.card_id);
+      renderColumn(card.column_id);
       if (state.focused && state.focused.id === row.card_id) renderFocusVote();
     }
   });
@@ -266,7 +266,21 @@ function subscribeRealtime(sessionID, userID, username) {
     const card = findCard(row.card_id);
     if (card) {
       const idx = (card.actions || []).findIndex(a => a.id === row.id);
-      if (idx !== -1) card.actions[idx] = { ...card.actions[idx], done: row.done };
+      if (idx !== -1) card.actions[idx] = { ...card.actions[idx], done: row.done, text: row.text, assignee: row.assignee, due_date: row.due_date };
+      renderCardElement(row.card_id);
+      if (state.focused && state.focused.id === row.card_id) {
+        state.focused.actions = card.actions;
+        renderActions();
+      }
+      renderActionsPanel();
+    }
+  });
+  channel.on('postgres_changes', {
+    event: 'DELETE', schema: 'public', table: 'action_items', filter: `session_id=eq.${sessionID}`
+  }, ({ old: row }) => {
+    const card = findCard(row.card_id);
+    if (card) {
+      card.actions = (card.actions || []).filter(a => a.id !== row.id);
       renderCardElement(row.card_id);
       if (state.focused && state.focused.id === row.card_id) {
         state.focused.actions = card.actions;
@@ -416,12 +430,13 @@ function renderActionsPanel() {
   if (!state.session) return;
   const body = document.getElementById('actions-side-body');
   const countEl = document.getElementById('actions-side-count');
+  const topbarCount = document.getElementById('topbar-action-count');
   if (!body) return;
 
   const allActions = [];
   (state.session.cards || []).forEach(card => {
     (card.actions || []).forEach(action => {
-      allActions.push({ ...action, cardText: card.text });
+      allActions.push({ ...action, cardText: card.text, cardId: card.id });
     });
   });
 
@@ -429,6 +444,9 @@ function renderActionsPanel() {
   if (countEl) {
     countEl.textContent = pendingCount;
     countEl.style.display = pendingCount > 0 ? 'inline' : 'none';
+  }
+  if (topbarCount) {
+    topbarCount.textContent = pendingCount > 0 ? pendingCount : '';
   }
 
   if (allActions.length === 0) {
@@ -439,15 +457,84 @@ function renderActionsPanel() {
   allActions.sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
 
   body.innerHTML = allActions.map(a => `
-    <div class="actions-side-item ${a.done ? 'done' : ''}">
-      <div class="actions-side-card-ref">📌 ${escHtml(a.cardText)}</div>
-      <div class="action-details">
-        <span class="action-text">${escHtml(a.text)}</span>
-        ${a.assignee ? `<span class="action-assignee">→ ${escHtml(a.assignee)}</span>` : ''}
-        ${a.due_date ? `<span class="action-due">📅 ${escHtml(a.due_date)}</span>` : ''}
+    <div class="actions-side-item ${a.done ? 'done' : ''}" data-action-id="${escHtml(a.id)}" data-card-id="${escHtml(a.cardId)}">
+      <div class="actions-side-card-ref" data-card-id="${escHtml(a.cardId)}">📌 ${escHtml(a.cardText)}</div>
+      <div class="action-view" style="display:flex">
+        <div class="action-details">
+          <span class="action-text">${escHtml(a.text)}</span>
+          ${a.assignee ? `<span class="action-assignee">→ ${escHtml(a.assignee)}</span>` : ''}
+          ${a.due_date ? `<span class="action-due">📅 ${escHtml(a.due_date)}</span>` : ''}
+        </div>
+        <div class="action-side-btns">
+          <button class="btn-icon action-edit-btn" title="Editar">✏️</button>
+          <button class="btn-icon action-delete-btn" title="Eliminar">🗑</button>
+        </div>
+      </div>
+      <div class="action-edit-form" style="display:none">
+        <input type="text" class="action-edit-text" value="${escHtml(a.text)}" maxlength="300" />
+        <input type="text" class="action-edit-assignee" placeholder="Responsable (opcional)" value="${escHtml(a.assignee || '')}" maxlength="80" />
+        <input type="date" class="action-edit-due" value="${escHtml(a.due_date || '')}" />
+        <div class="action-edit-btns">
+          <button class="btn-primary action-save-btn" style="font-size:0.78rem;padding:5px 10px">Guardar</button>
+          <button class="btn-ghost action-cancel-edit-btn" style="font-size:0.78rem;padding:5px 10px">Cancelar</button>
+        </div>
       </div>
     </div>
   `).join('');
+
+  body.querySelectorAll('.actions-side-item').forEach(item => {
+    const actionId = item.dataset.actionId;
+    const cardId = item.dataset.cardId;
+
+    // Click on card ref → open focus overlay
+    item.querySelector('.actions-side-card-ref').addEventListener('click', () => {
+      const card = findCard(cardId);
+      if (!card) return;
+      if (isHost()) {
+        focusCard(card.id).catch(err => console.error('focus error', err));
+      } else {
+        openFocusOverlay(card);
+      }
+    });
+
+    // Edit button → show inline form
+    item.querySelector('.action-edit-btn').addEventListener('click', () => {
+      item.querySelector('.action-view').style.display = 'none';
+      item.querySelector('.action-edit-form').style.display = 'flex';
+      item.querySelector('.action-edit-text').focus();
+    });
+
+    // Cancel edit
+    item.querySelector('.action-cancel-edit-btn').addEventListener('click', () => {
+      item.querySelector('.action-view').style.display = 'flex';
+      item.querySelector('.action-edit-form').style.display = 'none';
+    });
+
+    // Save edit
+    const saveEdit = () => {
+      const text = item.querySelector('.action-edit-text').value.trim();
+      if (!text) return;
+      const assignee = item.querySelector('.action-edit-assignee').value.trim();
+      const dueDate = item.querySelector('.action-edit-due').value;
+      editActionItem(actionId, text, assignee, dueDate)
+        .catch(err => alert('Error al editar: ' + err.message));
+      item.querySelector('.action-view').style.display = 'flex';
+      item.querySelector('.action-edit-form').style.display = 'none';
+    };
+    item.querySelector('.action-save-btn').addEventListener('click', saveEdit);
+    item.querySelector('.action-edit-text').addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveEdit();
+      if (e.key === 'Escape') item.querySelector('.action-cancel-edit-btn').click();
+    });
+
+    // Delete button
+    item.querySelector('.action-delete-btn').addEventListener('click', () => {
+      if (confirm('¿Eliminar esta acción?')) {
+        deleteActionItem(actionId)
+          .catch(err => alert('Error al eliminar: ' + err.message));
+      }
+    });
+  });
 }
 
 function renderPhase() {
@@ -945,6 +1032,18 @@ function toggleActionDone(cardId, actionId, currentDone) {
   return api('actions', 'PUT', { id: actionId, done: !currentDone });
 }
 
+function editActionItem(actionId, text, assignee, dueDate) {
+  return api('actions', 'PUT', { id: actionId, text, assignee: assignee || '', due_date: dueDate || '' });
+}
+
+function deleteActionItem(actionId) {
+  return api(`actions?id=${actionId}&sessionId=${state.session.id}`, 'DELETE');
+}
+
+function deleteSessionAction() {
+  return api(`sessions?id=${state.session.id}`, 'DELETE');
+}
+
 function moveCard(cardId, columnId) {
   return api('cards', 'PUT', { id: cardId, column_id: columnId });
 }
@@ -1114,13 +1213,32 @@ function setupEventListeners() {
     }
   });
 
-  // Actions side panel toggle
+  // Actions side panel toggle (button inside panel)
   document.getElementById('actions-side-toggle').addEventListener('click', () => {
-    const panel = document.getElementById('actions-side-panel');
-    const btn = document.getElementById('actions-side-toggle');
-    panel.classList.toggle('collapsed');
-    btn.textContent = panel.classList.contains('collapsed') ? '‹' : '›';
+    toggleActionsPanel();
   });
+
+  // Topbar panel toggle button
+  document.getElementById('toggle-panel-btn').addEventListener('click', () => {
+    toggleActionsPanel();
+  });
+
+  // Delete session (host only)
+  document.getElementById('delete-session-btn').addEventListener('click', () => {
+    if (!state.session) return;
+    if (!confirm(`¿Eliminar la sesión "${state.session.name}" y todos sus datos? Esta acción no se puede deshacer.`)) return;
+    deleteSessionAction()
+      .then(() => { window.location.href = '/'; })
+      .catch(err => alert('Error al eliminar: ' + err.message));
+  });
+}
+
+function toggleActionsPanel() {
+  const panel = document.getElementById('actions-side-panel');
+  const toggleBtn = document.getElementById('actions-side-toggle');
+  panel.classList.toggle('collapsed');
+  const isCollapsed = panel.classList.contains('collapsed');
+  if (toggleBtn) toggleBtn.textContent = isCollapsed ? '‹' : '›';
 }
 
 function submitComment() {
